@@ -1,7 +1,17 @@
 import logo from './logo.svg';
+import framer from './brands/framer.svg';
+import huawei from './brands/huawei.svg';
+import instagram from './brands/instagram.svg';
+import meta from './brands/meta.svg';
+import replit from './brands/replit.svg';
 
 export const assets = {
     logo,
+    framer,
+    huawei,
+    instagram,
+    meta,
+    replit,
 };
 
 export const appPlans = [
