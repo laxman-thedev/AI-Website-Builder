@@ -21,7 +21,7 @@ const Navbar = () => {
                     <Link to='/pricing'>Pricing</Link>
                 </div>
 
-                <div className="hidden items-center gap-3">
+                <div className="sm:hidden flex items-center gap-3">
                     <button onClick={() => navigate('/auth/signin')} className="px-6 py-1.5 max-sm:text-sm bg-indigo-600 active:scale-95 hover:bg-indigo-700 transition rounded">
                         Get started
                     </button>
