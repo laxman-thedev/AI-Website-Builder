@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { Project } from '../types'
-import { Loader2Icon, PlusIcon, TrashIcon } from 'lucide-react'
+import { Loader2Icon } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { dummyProjects } from '../assets/assets'
 import Footer from '../components/Footer'
+import { toast } from 'sonner'
+import api from '@/configs/axios'
 
 const Community = () => {
 
@@ -12,12 +13,13 @@ const Community = () => {
     const navigate = useNavigate()
 
     const fetchProjects = async () => {
-
-        setTimeout(() => {
-            setProjects(dummyProjects)
-
+        try {
+            const { data } = await api.get('/api/project/published')
+            setProjects(data.projects)
             setLoading(false)
-        }, 1000)
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Failed to fetch projects')
+        }
     }
 
     useEffect(() => {
@@ -31,7 +33,7 @@ const Community = () => {
                     <div className='flex items-center justify-center h-[80vh]'>
                         <Loader2Icon className='size-7 animate-spin text-indigo-200' />
                     </div>
-                ) : (   
+                ) : (
                     projects.length > 0 ? (
                         <div className='py-10 min-h-[80vh]'>
                             <div className='flex items-center justify-between mb-12'>
@@ -47,7 +49,7 @@ const Community = () => {
                                                     srcDoc={project.current_code}
                                                     className='absolute top-0 left-0 w-300 h-200 origin-top-left pointer-events-none'
                                                     sandbox='allow-script allow-same-origin'
-                                                    style={{transform: 'scale(0.25)'}}
+                                                    style={{ transform: 'scale(0.25)' }}
                                                 />
                                             ) : (
                                                 <div className='flex items-center justify-center h-full text-gray-500'>
@@ -84,7 +86,7 @@ const Community = () => {
                     ) : (
                         <div className='flex flex-col items-center justify-center h-[80vh]'>
                             <h1 className='text-3xl font-semibold text-gray-300'>You have no projects yet!</h1>
-                            <button onClick={()=> navigate('/')} className='text-white px-5 py-2 mt-5 rounded-md bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition-all'>
+                            <button onClick={() => navigate('/')} className='text-white px-5 py-2 mt-5 rounded-md bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition-all'>
                                 Create New
                             </button>
                         </div>
