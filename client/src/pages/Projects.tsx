@@ -2,14 +2,17 @@ import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import type { Project } from "../types"
 import { ArrowBigDownDashIcon, EyeIcon, EyeOffIcon, FullscreenIcon, LaptopIcon, Loader2Icon, MessageSquareIcon, SaveIcon, SmartphoneIcon, TabletIcon, XIcon } from "lucide-react"
-import { dummyConversations, dummyProjects, dummyVersion } from "../assets/assets"
 import Sidebar from "../components/Sidebar"
 import ProjectPreview, { type ProjectPreviewRef } from "../components/ProjectPreview"
+import api from "@/configs/axios"
+import { toast } from "sonner"
+import { authClient } from "@/lib/auth-client"
 
 const Projects = () => {
 
-    const {projectId} = useParams()
+    const { projectId } = useParams()
     const navigate = useNavigate()
+    const { data: session, isPending } = authClient.useSession()
 
     const [project, setProject] = useState<Project | null>(null)
     const [loading, setLoading] = useState(true)
@@ -21,32 +24,37 @@ const Projects = () => {
     const previewRef = useRef<ProjectPreviewRef>(null);
 
     const fetchProject = async () => {
-        const project = dummyProjects.find(project => project.id === projectId  )
-
-        setTimeout(()=>{
-            if(project){
-                setProject({...project, conversation: dummyConversations, versions: dummyVersion})
-                setLoading(false)
-                setIsGenerating(project.current_code ? false : true)
-            }
-        }, 2000)
+        try {
+            const { data } = await api.get(`api/user/projects/${projectId}`)
+            setProject(data.project)
+            setIsGenerating(data.project.current_code ? false : true)
+            setLoading(false)
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Failed to fetch project!')
+        }
     }
 
     const togglePublish = async () => {
-
+        try {
+            const { data } = await api.get(`/api/user/publish-toggle/${projectId}`)
+            toast.success(data.message)
+            setProject((prev) => prev ? ({ ...prev, isPublished: !prev.isPublished }) : null)
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Failed to save project!')
+        }
     }
 
     // download code (index.html)
     const downloadCode = async () => {
         const code = previewRef.current?.getCode() || project?.current_code;
-        if(!code){
-            if(isGenerating){
+        if (!code) {
+            if (isGenerating) {
                 return
             }
             return
         }
         const element = document.createElement("a");
-        const file = new Blob([code], {type: 'text/html'});
+        const file = new Blob([code], { type: 'text/html' });
         element.href = URL.createObjectURL(file);
         element.download = "index.html";
         document.body.appendChild(element);
@@ -54,15 +62,41 @@ const Projects = () => {
     }
 
     const saveProject = async () => {
-        
+        if (!previewRef.current) return;
+        const code = previewRef.current.getCode();
+        if (!code) return;
+
+        try {
+            const { data } = await api.put(`/api/project/save/${projectId}`, { code })
+            toast.success(data.message)
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Failed to save project!')
+        }
+        finally {
+            setIsSaving(false);
+        }
     }
 
     useEffect(() => {
-        fetchProject()
-    }, [])
+        if (session?.user) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            fetchProject();
+        }
+        else if (!isPending && !session?.user) {
+            navigate('/login')
+            toast("Please login to access your projects!")
+        }
+    }, [session?.user])
+
+    useEffect(() => {
+        if (project && !project.current_code) {
+            const intervalId = setInterval(fetchProject, 10000);
+            return () => clearInterval(intervalId);
+        }
+    }, [project])
 
 
-    if(loading){
+    if (loading) {
         return (
             <>
                 <div className="flex items-center justify-center h-screen">
@@ -72,31 +106,31 @@ const Projects = () => {
         )
     }
 
-    return project ?  (
+    return project ? (
         <div className="flex flex-col h-screen w-full bg-gray-900 text-white">
             {/* builder navbar */}
             <div className="flex max-sm:flex-col sm:items-center gap-4 px-4 py-2 no-scrollbar">
                 {/* left */}
                 <div className="flex items-center gap-2 sm:min-w-90 text-nowrap">
-                    <img onClick={()=> navigate('/')} src="/favicon.svg" alt="logo" className="h-6 cursor-pointer" />
+                    <img onClick={() => navigate('/')} src="/favicon.svg" alt="logo" className="h-6 cursor-pointer" />
                     <div className="max-w-64 sm:max-w-xs">
                         <p className="text-sm text-medium capitalize truncate">{project.name}</p>
                         <p className="text-xs text-gray-400 -mt-0.5">Previewing last saved version</p>
                     </div>
                     <div className="sm:hidden flex-1 flex justify-end">
-                        { isMenuOpen ? 
-                            <MessageSquareIcon onClick={()=> setIsMenuOpen(false)} className="size-6 cursor-pointer" /> : 
-                            <XIcon onClick={()=> setIsMenuOpen(true)} className="size-6 cursor-pointer" />}
+                        {isMenuOpen ?
+                            <MessageSquareIcon onClick={() => setIsMenuOpen(false)} className="size-6 cursor-pointer" /> :
+                            <XIcon onClick={() => setIsMenuOpen(true)} className="size-6 cursor-pointer" />}
                     </div>
                 </div>
 
                 {/* center */}
                 <div className="hidden sm:flex gap-2 bg-gray-950 p-1.5 rounded-md">
-                    <SmartphoneIcon onClick={()=> setDevice('phone')} className={`size-6 cursor-pointer p-1 rounded ${device === 'phone' ? 'bg-gray-700' : ''}`} />
-                        
-                    <TabletIcon onClick={()=> setDevice('tablet')} className={`size-6 cursor-pointer p-1 rounded ${device === 'tablet' ? 'bg-gray-700' : ''}`} />
+                    <SmartphoneIcon onClick={() => setDevice('phone')} className={`size-6 cursor-pointer p-1 rounded ${device === 'phone' ? 'bg-gray-700' : ''}`} />
 
-                    <LaptopIcon onClick={()=> setDevice('desktop')} className={`size-6 cursor-pointer p-1 rounded ${device === 'desktop' ? 'bg-gray-700' : ''}`} />
+                    <TabletIcon onClick={() => setDevice('tablet')} className={`size-6 cursor-pointer p-1 rounded ${device === 'tablet' ? 'bg-gray-700' : ''}`} />
+
+                    <LaptopIcon onClick={() => setDevice('desktop')} className={`size-6 cursor-pointer p-1 rounded ${device === 'desktop' ? 'bg-gray-700' : ''}`} />
                 </div>
 
                 {/* right */}
@@ -118,7 +152,7 @@ const Projects = () => {
             </div>
 
             <div className="flex-1 flex overflow-hidden">
-                <Sidebar isMenuOpen={isMenuOpen} project={project} setProject={(p)=> setProject(p) } isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
+                <Sidebar isMenuOpen={isMenuOpen} project={project} setProject={(p) => setProject(p)} isGenerating={isGenerating} setIsGenerating={setIsGenerating} />
 
                 <div className="flex-1 p-2 pl-0">
                     <ProjectPreview ref={previewRef} project={project} isGenerating={isGenerating} device={device} />
