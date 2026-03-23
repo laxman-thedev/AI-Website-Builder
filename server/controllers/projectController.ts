@@ -53,7 +53,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         // Enhance user prompt
         const promptEnhanceResponse = await openai.chat.completions.create({
-            model: 'z-ai/glm-4.5-air:free',
+            model: 'stepfun/step-3.5-flash:free',
             messages: [
                 {
                     role: 'system',
@@ -95,7 +95,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         // Generate website code
         const codeGenerationResponse = await openai.chat.completions.create({
-            model: 'z-ai/glm-4.5-air:free',
+            model: 'stepfun/step-3.5-flash:free',
             messages: [
                 {
                     role: 'system',
@@ -118,6 +118,21 @@ export const makeRevision = async (req: Request, res: Response) => {
         })
 
         const code = codeGenerationResponse.choices[0].message.content || '';
+
+        if (!code) {
+            await prisma.conversation.create({
+                data: {
+                    role: 'assistant',
+                    content: "Unable to generate code, please try again",
+                    projectId
+                }
+            })
+            await prisma.user.update({
+                where: { id: userId },
+                data: { credits: { increment: 5 } }
+            })
+            return;
+        }
 
         const version = await prisma.version.create({
             data: {
@@ -223,7 +238,7 @@ export const deleteProject = async (req: Request, res: Response) => {
         const projectId = Array.isArray(req.params.projectId)
             ? req.params.projectId[0]
             : req.params.projectId;
-        
+
         await prisma.websiteProject.delete({
             where: { id: projectId, userId }
         })
@@ -242,14 +257,14 @@ export const getProjectPreview = async (req: Request, res: Response) => {
         const projectId = Array.isArray(req.params.projectId)
             ? req.params.projectId[0]
             : req.params.projectId;
-        
+
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
-        
+
         const project = await prisma.websiteProject.findFirst({
             where: { id: projectId, userId },
-            include: {versions: true}
+            include: { versions: true }
         })
 
         if (!project) {
@@ -287,8 +302,7 @@ export const getProjectById = async (req: Request, res: Response) => {
         const project = await prisma.websiteProject.findFirst({
             where: { id: projectId }
         })
-
-        if (!project || !project.isPublished === false || !project?.current_code) {
+        if (!project || project.isPublished === false || !project?.current_code) {
             return res.status(404).json({ message: 'Project not found' });
         }
 
@@ -297,7 +311,7 @@ export const getProjectById = async (req: Request, res: Response) => {
         console.error('Error retrieving project:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
-} 
+}
 
 // save project code
 export const saveProjectCode = async (req: Request, res: Response) => {
@@ -320,7 +334,7 @@ export const saveProjectCode = async (req: Request, res: Response) => {
             where: { id: projectId, userId }
         })
 
-        if(!project) {
+        if (!project) {
             return res.status(404).json({ message: 'Project not found' });
         }
 
