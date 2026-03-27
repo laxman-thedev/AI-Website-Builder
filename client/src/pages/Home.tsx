@@ -1,5 +1,5 @@
 import { Loader2Icon } from "lucide-react";
-import React, { use, useState } from "react";
+import React, { useState } from "react";
 import { assets } from "../assets/assets";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
