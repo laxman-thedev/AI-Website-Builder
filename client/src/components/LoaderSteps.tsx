@@ -1,5 +1,5 @@
 import { CircleIcon, ScanLineIcon, SquareIcon, TrainIcon } from "lucide-react"
-import { use, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 
 const steps = [
     {icon: ScanLineIcon, label: 'Analyzing your request...'},
