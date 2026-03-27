@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma.js';
 import openai from '../configs/openai.js';
+import Stripe from 'stripe';
 
 
 // get user credits
@@ -312,8 +313,63 @@ export const togglePublish = async (req: Request, res: Response) => {
 // purchase credits
 export const purchaseCredits = async (req: Request, res: Response) => {
     try {
-        
+        interface Plan {
+            credits: number;
+            amount: number;
+        }
 
+        const plans = {
+            basic: { credits: 100, amount: 5 },
+            pro: { credits: 400, amount: 19 },
+            enterprise: { credits: 1000, amount: 49 }, 
+        }
+
+        const userId = req.userId;
+        const {planId} = req.body as {planId: keyof typeof plans};
+        const origin = req.headers.origin as string;
+
+        const plan: Plan = plans[planId];
+
+        if(!plan) {
+            console.error('Invalid plan selected:', planId, plan);
+            return res.status(400).json({message: 'Invalid plan selected'});
+        }
+
+        const transaction = await prisma.transaction.create({
+            data: {
+                userId: userId!,
+                planId: req.body.planId,
+                amount: plan.amount,
+                credits: plan.credits,
+            }
+        })
+
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
+        const session = await stripe.checkout.sessions.create({
+            success_url: `${origin}/loading`,
+            cancel_url: `${origin}`,
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'usd',
+                        product_data: {
+                            name: `AISiteBuilder - ${plan.credits} credits`
+                        },
+                        unit_amount: Math.floor(transaction.amount) * 100,
+                    },
+                    quantity: 1,
+                },
+            ],
+            mode: 'payment',
+            metadata: {
+                transactionId: transaction.id,
+                appId: 'ai-website-builder',
+            },
+            expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes from now
+        })
+
+        res.json({payment_url: session.url});
     } catch (error) {
         console.error('Error fetching project:', error);
         res.status(500).json({ message: 'Internal server error' });
