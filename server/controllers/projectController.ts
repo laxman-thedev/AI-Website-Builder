@@ -283,8 +283,14 @@ export const getPublishedProjects = async (req: Request, res: Response) => {
     try {
         const projects = await prisma.websiteProject.findMany({
             where: { isPublished: true },
-            
-        })
+            include: {
+                user: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        });
 
         res.json({ projects });
     } catch (error: any) {
