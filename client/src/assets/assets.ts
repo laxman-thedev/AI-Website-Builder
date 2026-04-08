@@ -1,4 +1,4 @@
-import logo from './logo.svg';
+import logo from './logo.png';
 import framer from './brands/framer.svg';
 import huawei from './brands/huawei.svg';
 import instagram from './brands/instagram.svg';
