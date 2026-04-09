@@ -22,9 +22,10 @@ const Pricing = () => {
 
     const handlePurchase = async (planId: string) => {          
         try {
+            console.log('Attempting to purchase plan with ID:', planId);
             if(!session?.user) return toast('Please login to purchase a plan');
             const {data} = await api.post('/api/user/purchase-credits', {planId});
-            window.location.href = data.payment_link;
+            window.location.href = data.payment_url;
         } catch (error: any) {
             toast.error(error?.response?.data?.message || 'An error occurred while processing your purchase. Please try again.');
         }
