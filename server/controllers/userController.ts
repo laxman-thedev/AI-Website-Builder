@@ -1,17 +1,21 @@
+// Handles user-related controller logic like credits and projects.
+// Module: controllers.
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma.js';
 import openai from '../configs/openai.js';
 import Stripe from 'stripe';
 
 
-// get user credits
+// Return the current user's credit balance.
 export const getUserCredits = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
 
+        // Ensure the request is authenticated.
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
+        // Prisma: fetch user credits by id.
         const user = await prisma.user.findUnique({
             where: {
                 id: userId,
@@ -26,25 +30,28 @@ export const getUserCredits = async (req: Request, res: Response) => {
     }
 }
 
-// create a new project
+// Create a new project and kick off AI generation.
 export const createUserProject = async (req: Request, res: Response) => {
     const userId = req.userId;
     try {
         const { initial_prompt } = req.body;
+        // Ensure the request is authenticated.
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
+        // Prisma: fetch the user for credit checks.
         const user = await prisma.user.findUnique({
             where: {
                 id: userId,
             },
         });
 
+        // Ensure the user has enough credits.
         if (user && user.credits < 5) {
             return res.status(403).json({ message: 'add credits to create a project' })
         }
 
-        // create a new project
+        // Prisma: create a new website project record.
         const project = await prisma.websiteProject.create({
             data: {
                 name: initial_prompt.length > 50 ? initial_prompt.substring(0, 47) + '...' : initial_prompt,
@@ -53,12 +60,13 @@ export const createUserProject = async (req: Request, res: Response) => {
             }
         })
 
-        // update user credits
+        // Prisma: increment total project creations for the user.
         await prisma.user.update({
             where: { id: userId },
             data: { totalCreation: { increment: 1 }, },
         });
 
+        // Prisma: store the initial prompt as conversation history.
         await prisma.conversation.create({
             data: {
                 role: 'user',
@@ -67,6 +75,7 @@ export const createUserProject = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: deduct credits for project creation.
         await prisma.user.update({
             where: { id: userId },
             data: { credits: { decrement: 5 } },
@@ -74,7 +83,7 @@ export const createUserProject = async (req: Request, res: Response) => {
 
         res.json({ projectId: project.id });
 
-        // Enhance user prompt
+        // OpenAI: enhance the project prompt for better output.
         const promptEnhanceResponse = await openai.chat.completions.create({
             model: 'stepfun/step-3.5-flash:free',
             messages: [
@@ -101,6 +110,7 @@ export const createUserProject = async (req: Request, res: Response) => {
 
         const enhancedPrompt = promptEnhanceResponse.choices[0].message.content;
 
+        // Prisma: save the enhanced prompt to conversation.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -109,6 +119,7 @@ export const createUserProject = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: log that generation is starting.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -117,7 +128,7 @@ export const createUserProject = async (req: Request, res: Response) => {
             }
         })
 
-        // Generate website code
+        // OpenAI: generate the initial HTML for the project.
         const codeGenerationResponse = await openai.chat.completions.create({
             model: 'stepfun/step-3.5-flash:free',
             messages: [
@@ -159,6 +170,7 @@ export const createUserProject = async (req: Request, res: Response) => {
         const code = codeGenerationResponse.choices[0].message.content || '';
 
         if (!code) {
+            // Prisma: record failure and refund credits.
             await prisma.conversation.create({
                 data: {
                     role: 'assistant',
@@ -166,6 +178,7 @@ export const createUserProject = async (req: Request, res: Response) => {
                     projectId: project.id
                 }
             })
+            // Prisma: refund credits on generation failure.
             await prisma.user.update({
                 where: { id: userId },
                 data: { credits: { increment: 5 } }
@@ -173,7 +186,7 @@ export const createUserProject = async (req: Request, res: Response) => {
             return;
         }
 
-        // create version for the project
+        // Prisma: create the initial version record.
         const version = await prisma.version.create({
             data: {
                 code: code.replace(/```[a-z]*\n?/gi, '')
@@ -184,6 +197,7 @@ export const createUserProject = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: notify the user about the created website.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -192,6 +206,7 @@ export const createUserProject = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: update project with the generated code.
         await prisma.websiteProject.update({
             where: { id: project.id },
             data: {
@@ -203,6 +218,7 @@ export const createUserProject = async (req: Request, res: Response) => {
         })
 
     } catch (error) {
+        // Prisma: refund credits if any error occurs.
         await prisma.user.update({
             where: { id: userId },
             data: { credits: { increment: 5 } }
@@ -212,11 +228,12 @@ export const createUserProject = async (req: Request, res: Response) => {
     }
 }
 
-// get a single user project
+// Fetch a single project with conversations and versions.
 export const getUserProject = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
 
+        // Ensure the request is authenticated.
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -225,6 +242,7 @@ export const getUserProject = async (req: Request, res: Response) => {
             ? req.params.projectId[0]
             : req.params.projectId;
 
+        // Prisma: load project with conversations and versions.
         const project = await prisma.websiteProject.findUnique({
             where: {
                 id: projectId,
@@ -248,15 +266,17 @@ export const getUserProject = async (req: Request, res: Response) => {
     }
 };
 
-// get all user projects
+// List all projects for the current user.
 export const getUserProjects = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
 
+        // Ensure the request is authenticated.
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
+        // Prisma: fetch all projects sorted by update time.
         const projects = await prisma.websiteProject.findMany({
             where: { userId },
             orderBy: { updatedAt: 'desc' },
@@ -270,11 +290,12 @@ export const getUserProjects = async (req: Request, res: Response) => {
     }
 };
 
-// toggle publish
+// Toggle a project's published state.
 export const togglePublish = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
 
+        // Ensure the request is authenticated.
         if (!userId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
@@ -283,6 +304,7 @@ export const togglePublish = async (req: Request, res: Response) => {
             ? req.params.projectId[0]
             : req.params.projectId;
         
+        // Prisma: load the project for this user.
         const project = await prisma.websiteProject.findUnique({
             where: {
                 id: projectId,
@@ -294,6 +316,7 @@ export const togglePublish = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Project not found' });
         }
 
+        // Prisma: flip the published flag.
         await prisma.websiteProject.update({
             where: {
                 id: projectId,
@@ -310,7 +333,7 @@ export const togglePublish = async (req: Request, res: Response) => {
     }
 };
 
-// purchase credits
+// Create a Stripe checkout session for credit purchase.
 export const purchaseCredits = async (req: Request, res: Response) => {
     try {
         interface Plan {
@@ -330,11 +353,13 @@ export const purchaseCredits = async (req: Request, res: Response) => {
 
         const plan: Plan = plans[planId];
 
+        // Validate the selected plan.
         if(!plan) {
             console.error('Invalid plan selected:', planId, plan);
             return res.status(400).json({message: 'Invalid plan selected'});
         }
 
+        // Prisma: create a pending transaction record.
         const transaction = await prisma.transaction.create({
             data: {
                 userId: userId!,
@@ -344,8 +369,10 @@ export const purchaseCredits = async (req: Request, res: Response) => {
             }
         })
 
+        // Stripe: initialize client with the secret key.
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
+        // Stripe: create a checkout session for payment.
         const session = await stripe.checkout.sessions.create({
             success_url: `${origin}/loading`,
             cancel_url: `${origin}`,
@@ -369,10 +396,10 @@ export const purchaseCredits = async (req: Request, res: Response) => {
             expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes from now
         })
 
+        // Return Stripe checkout URL to the client.
         res.json({payment_url: session.url});
     } catch (error) {
         console.error('Error fetching project:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 };
-

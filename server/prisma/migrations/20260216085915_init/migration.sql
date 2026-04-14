@@ -1,3 +1,5 @@
+-- Creates the initial database tables and relations.
+-- Module: database migrations.
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('user', 'assistant');
 

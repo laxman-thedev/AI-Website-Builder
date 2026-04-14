@@ -1,3 +1,5 @@
+// Starts the Express app and wires middleware/routes.
+// Module: server bootstrap.
 import "dotenv/config";
 import express, { Request, Response } from 'express';
 import cors from "cors";
@@ -14,24 +16,31 @@ const corsOptions = {
     credentials: true, // Allow cookies to be sent with requests
 }
 
-// Middleware
+// Apply CORS for trusted origins.
 app.use(cors(corsOptions))
 
+// POST /api/stripe: receive Stripe webhook events.
 app.post('/api/stripe', express.raw({type: 'application/json'}), stripeWebhook)
 
+// ALL /api/auth/*: forward auth requests to Better Auth handler.
 app.all('/api/auth/{*any}', toNodeHandler(auth));
 
+// Parse JSON request bodies for API routes.
 app.use(express.json({limit: '50mb'})); 
 
 const port = process.env.PORT || 3000;
 
+// GET /: simple health check response.
 app.get('/', (req: Request, res: Response) => {
     res.send('Server is Live!');
 });
 
+// Mount user-related API routes.
 app.use('/api/user', userRouter);
+// Mount project-related API routes.
 app.use('/api/project', projectRouter);
 
+// Start the HTTP server.
 app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);
 });
