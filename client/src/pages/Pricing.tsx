@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/immutability */
+// Pricing page that lists available credit plans.
 import { useState } from "react";
 import { appPlans } from "../assets/assets";
 import Footer from "../components/Footer";
@@ -17,9 +18,12 @@ interface Plan {
 
 const Pricing = () => {
 
+    // Session required for purchases.
     const {data: session} = authClient.useSession()
+    // Plans are loaded from static assets.
     const [plans] = useState<Plan[]>(appPlans)
 
+    // Start a purchase flow for a plan.
     const handlePurchase = async (planId: string) => {          
         try {
             console.log('Attempting to purchase plan with ID:', planId);

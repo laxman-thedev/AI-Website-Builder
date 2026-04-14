@@ -1,3 +1,4 @@
+// App router that maps URLs to page components.
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Home from './pages/Home'
 import Pricing from './pages/Pricing'
@@ -14,14 +15,17 @@ import Loading from './pages/Loading'
 
 const App = () => {
 
+  // Track current path to toggle layout elements.
   const  {pathname} = useLocation()
 
+  // Hide the navbar on immersive preview/editor routes.
   const hideNavbar = pathname.startsWith('/projects/') && pathname !== '/projects' || pathname.startsWith('/view/') || pathname.startsWith('/preview/')
 
   return (
     <div>
       <Toaster />
       {!hideNavbar && <Navbar />}
+        {/* Main route table */}
         <Routes>
           <Route path='/' element={<Home />} />
           <Route path='/pricing' element={<Pricing />} />

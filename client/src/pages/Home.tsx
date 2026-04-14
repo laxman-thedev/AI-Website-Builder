@@ -1,3 +1,4 @@
+// Landing page that lets users start a new AI website project.
 import { Loader2Icon } from "lucide-react";
 import React, { useState } from "react";
 import { assets } from "../assets/assets";
@@ -8,12 +9,16 @@ import { useNavigate } from "react-router-dom";
 
 const Home = () => {
 
+    // Session helps gate project creation.
     const {data: session} = authClient.useSession();
     const navigate = useNavigate();
 
+    // Prompt text for the new project.
     const [input, setInput] = useState('');
+    // Controls the loading state of the submit button.
     const [loading, setLoading] = useState(false);
 
+    // Create a new project and route to its builder page.
     const onSubmitHandler = async (e: React.FormEvent) => {
         e.preventDefault();
         try {

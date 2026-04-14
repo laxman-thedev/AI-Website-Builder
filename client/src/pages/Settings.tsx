@@ -1,3 +1,4 @@
+// Account settings page composed of auth UI cards.
 import { AccountSettingsCards, ChangePasswordCard, DeleteAccountCard } from "@daveyplate/better-auth-ui"
 
 const Settings = () => {

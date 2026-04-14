@@ -1,3 +1,4 @@
+// Fullscreen preview page for a project's generated HTML.
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom";
 import { Loader2Icon } from "lucide-react";
@@ -9,11 +10,14 @@ import { authClient } from "@/lib/auth-client";
 
 const Preview = () => {
 
+    // Auth session ensures only logged-in users can preview.
     const {data: session, isPending} = authClient.useSession()
     const { projectId, versionId } = useParams()
+    // HTML code to display in the iframe.
     const [code, setCode] = useState("");
     const [loading, setLoading] = useState(true);
 
+    // Fetch project code and pick a version if provided.
     const fetchCode = async () => {
         try {
             const {data} = await api.get(`/api/project/preview/${projectId}`)
@@ -32,6 +36,7 @@ const Preview = () => {
     }  
 
     useEffect(() => {
+        // Wait for session before loading preview data.
         if(!isPending && session?.user){
             fetchCode()
         }

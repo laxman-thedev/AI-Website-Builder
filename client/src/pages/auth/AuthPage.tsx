@@ -1,7 +1,9 @@
+// Auth page wrapper for sign-in/sign-up views.
 import { useParams } from "react-router-dom"
 import { AuthView } from "@daveyplate/better-auth-ui"
 
 export default function AuthPage() {
+    // AuthView uses the route param to decide which screen to show.
     const { pathname } = useParams()
 
     return (

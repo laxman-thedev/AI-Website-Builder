@@ -1,3 +1,4 @@
+// Main builder page for a single project.
 import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import type { Project } from "../types"
@@ -12,17 +13,25 @@ const Projects = () => {
 
     const { projectId } = useParams()
     const navigate = useNavigate()
+    // Session state controls access to the builder.
     const { data: session, isPending } = authClient.useSession()
 
+    // Project data loaded from the API.
     const [project, setProject] = useState<Project | null>(null)
     const [loading, setLoading] = useState(true)
+    // Tracks whether the AI is still generating code.
     const [isGenerating, setIsGenerating] = useState(true)
+    // Selected preview device size.
     const [device, setDevice] = useState<"desktop" | "tablet" | "phone">("desktop")
+    // Toggles the chat sidebar on small screens.
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    // Save button loading state.
     const [isSaving, setIsSaving] = useState(false)
 
+    // Reference used to extract HTML from the preview iframe.
     const previewRef = useRef<ProjectPreviewRef>(null);
 
+    // Fetch the project details from the API.
     const fetchProject = async () => {
         try {
             const { data } = await api.get(`api/user/projects/${projectId}`)
@@ -34,6 +43,7 @@ const Projects = () => {
         }
     }
 
+    // Toggle publish/unpublish state for the project.
     const togglePublish = async () => {
         try {
             const { data } = await api.get(`/api/user/publish-toggle/${projectId}`)
@@ -61,6 +71,7 @@ const Projects = () => {
         element.click();
     }
 
+    // Save the edited HTML back to the server.
     const saveProject = async () => {
         if (!previewRef.current) return;
         const code = previewRef.current.getCode();
@@ -78,6 +89,7 @@ const Projects = () => {
     }
 
     useEffect(() => {
+        // Load project data once the session is ready.
         if (session?.user) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             fetchProject();
@@ -89,6 +101,7 @@ const Projects = () => {
     }, [session?.user])
 
     useEffect(() => {
+        // Poll for updates while generation is still running.
         if (project && !project.current_code) {
             const intervalId = setInterval(fetchProject, 10000);
             return () => clearInterval(intervalId);

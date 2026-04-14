@@ -1,3 +1,4 @@
+// Renders the HTML preview in an iframe with optional inline editor support.
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Project } from '../types'
 import { iframeScript } from '../assets/assets';
@@ -17,7 +18,9 @@ export interface ProjectPreviewRef {
 
 const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({project, isGenerating, device='desktop', showEditorPanel=true}, ref) => {
 
+    // Iframe reference for extracting or updating HTML.
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    // Currently selected element data from the preview script.
     const [selectedElement, setSelectedElement] = useState<any>(null)
 
     const resolutions = {
@@ -27,6 +30,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({proj
     }
 
     useImperativeHandle(ref, ()=> ({
+        // Expose a method to return clean HTML for downloads/saves.
         getCode: ()=> {
             const doc = iframeRef.current?.contentDocument;
             if(!doc) return undefined;
@@ -53,6 +57,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({proj
     }))
 
     useEffect(()=> {
+        // Listen for selection events from the preview iframe.
         const handleMessage = (event: MessageEvent)=> {
             if(event.data.type === 'ELEMENT_SELECTED'){
                 setSelectedElement(event.data.payload)
@@ -65,6 +70,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({proj
         return ()=> window.removeEventListener('message', handleMessage)
     }, [])
 
+    // Send style/text updates to the iframe script.
     const handleUpdate = (updates: any)=> {
         if(iframeRef.current?.contentWindow){
             iframeRef.current.contentWindow.postMessage({
@@ -75,6 +81,7 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({proj
     }
 
 
+    // Inject the editor script when the panel is enabled.
     const injectPreview = (html: string)=> {
         if(!html) return '';
         if(!showEditorPanel) return html;
@@ -115,5 +122,4 @@ const ProjectPreview = forwardRef<ProjectPreviewRef, ProjectPreviewProps>(({proj
 })
 
 export default ProjectPreview
-
 

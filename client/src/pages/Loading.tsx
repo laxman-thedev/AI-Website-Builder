@@ -1,9 +1,11 @@
+// Temporary loading screen that redirects after a delay.
 import { Loader2Icon } from 'lucide-react'
 import { useEffect } from 'react'
 
 const Loading = () => {
 
     useEffect(()=> {
+        // Redirect back to home after showing the spinner.
         setTimeout(() => {
             window.location.href = '/'
         }, 6000)

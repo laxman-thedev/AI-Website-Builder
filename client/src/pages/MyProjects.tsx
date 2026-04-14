@@ -1,3 +1,4 @@
+// List of the current user's projects with delete and open actions.
 import { useEffect, useState } from 'react'
 import type { Project } from '../types'
 import { Loader2Icon, PlusIcon, TrashIcon } from 'lucide-react'
@@ -9,11 +10,15 @@ import { authClient } from '@/lib/auth-client'
 
 const MyProjects = () => {
 
+    // Auth session controls access to this page.
     const {data: session, isPending} = authClient.useSession()
+    // Loading state for the project list.
     const [loading, setLoading] = useState(true)
+    // Project data retrieved from the API.
     const [projects, setProjects] = useState<Project[]>([])
     const navigate = useNavigate()
 
+    // Fetch all projects for the current user.
     const fetchProjects = async () => {
         try {
             const {data} = await api.get('/api/user/projects')
@@ -24,6 +29,7 @@ const MyProjects = () => {
         }
     }
 
+    // Delete a project after confirmation.
     const deleteProject = async (projectId: string)=> {
         try {
             const confirm = window.confirm('Are you sure you want to delete this project?');
@@ -38,6 +44,7 @@ const MyProjects = () => {
     }
 
     useEffect(() => {
+        // Load projects for signed-in users; redirect otherwise.
         if(session?.user && !isPending){
             fetchProjects()
         }else if(!session?.user && !isPending){
