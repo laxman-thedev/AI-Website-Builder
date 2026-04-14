@@ -1,3 +1,4 @@
+// Shared static assets and sample data for the UI.
 import logo from './logo.png';
 import framer from './brands/framer.svg';
 import huawei from './brands/huawei.svg';
@@ -5,6 +6,7 @@ import instagram from './brands/instagram.svg';
 import meta from './brands/meta.svg';
 import replit from './brands/replit.svg';
 
+// Image assets used in the marketing UI.
 export const assets = {
     logo,
     framer,
@@ -14,6 +16,7 @@ export const assets = {
     replit,
 };
 
+// Pricing plan definitions shown on the Pricing page.
 export const appPlans = [
         {
             id: 'basic',
@@ -41,12 +44,14 @@ export const appPlans = [
         }
     ]
 
+// Example user data used for placeholders.
 export const dummyUser = {
     name: "GreatStack",
     id: 'xyz',
     email: 'test@greatstack.dev'
 }
 
+// Example project data used for placeholders or demos.
 export const dummyProjects = [
     {
         id: '6a6a3a97-8fb0-41e9-ad08-3f9e6dc7d359',

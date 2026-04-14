@@ -1,3 +1,4 @@
+// Community page that lists published projects for browsing.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
@@ -10,10 +11,13 @@ import api from '@/configs/axios'
 
 const Community = () => {
 
+    // Loading state for the public project list.
     const [loading, setLoading] = useState(true)
+    // Published projects shown in the grid.
     const [projects, setProjects] = useState<Project[]>([])
     const navigate = useNavigate()
 
+    // Fetch published projects from the API.
     const fetchProjects = async () => {
         try {
             const { data } = await api.get('/api/project/published')
@@ -25,6 +29,7 @@ const Community = () => {
     }
 
     useEffect(() => {
+        // Load once on mount.
         fetchProjects()
     }, [])
 

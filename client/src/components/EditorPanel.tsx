@@ -1,3 +1,4 @@
+// Floating panel for editing a selected element's text and styles.
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -20,8 +21,10 @@ interface EditorPanelProps {
 
 const EditorPanel = ({selectedElement, onUpdate, onClose}: EditorPanelProps) => {
 
+    // Local copy of element fields being edited.
     const [values, setValues] = useState(selectedElement)
 
+    // Update a top-level field or a style field.
     const handleChange = (field: string, value: string) => {
         const newValues = {...values, [field]: value};
         if(field in values.styles){
@@ -32,11 +35,13 @@ const EditorPanel = ({selectedElement, onUpdate, onClose}: EditorPanelProps) => 
     }
 
     useEffect(() => {
+        // Sync panel fields when a new element is selected.
         setValues(selectedElement)
     }, [selectedElement])
 
     if(!selectedElement || !values) return null;
 
+    // Update a nested style value.
     const handleStyleChange = (styleName: string, value: string)=> {
         const newStyles = {...values.styles, [styleName]: value};
         setValues({...values, styles: newStyles})

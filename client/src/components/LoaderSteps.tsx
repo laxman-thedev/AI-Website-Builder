@@ -1,6 +1,8 @@
+// Animated loading indicator that cycles through build steps.
 import { CircleIcon, ScanLineIcon, SquareIcon, TrainIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
+// Labels and icons shown while the AI generates content.
 const steps = [
     {icon: ScanLineIcon, label: 'Analyzing your request...'},
     {icon: SquareIcon, label: 'Generating layout structure...'},
@@ -8,13 +10,16 @@ const steps = [
     {icon: CircleIcon, label: 'Finalizing the website...'},
 ]
 
+// Time to show each step.
 const STEP_DURATION = 45000 
 
 const LoaderSteps = () => {
 
+    // Current step index.
     const [current, setCurrent] = useState(0)
 
     useEffect(() => {
+        // Rotate through the steps at a fixed interval.
         const interval = setInterval(()=> {
             setCurrent((s)=> (s+1) % steps.length)
         }, STEP_DURATION)

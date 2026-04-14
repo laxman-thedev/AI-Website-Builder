@@ -1,3 +1,4 @@
+// Top navigation bar with auth actions and credit display.
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react'
 import { assets } from '../assets/assets';
@@ -9,12 +10,16 @@ import { toast } from 'sonner';
 
 const Navbar = () => {
 
+    // Controls the mobile menu drawer.
     const [menuOpen, setMenuOpen] = useState(false);
     const navigate = useNavigate()
+    // Stores the user's remaining credit balance.
     const [credits, setCredits] = useState(0)
 
+    // Session data tells us if the user is logged in.
     const { data: session } = authClient.useSession()
 
+    // Fetch the current credit count from the API.
     const getCredits = async() => {
         try {
             const {data} = await api.get('api/user/credits')
@@ -25,6 +30,7 @@ const Navbar = () => {
     }
 
     useEffect(() => {
+        // Load credits when a user session is available.
         if (session?.user) {
             getCredits()
         }

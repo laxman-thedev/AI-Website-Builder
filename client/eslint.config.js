@@ -1,3 +1,4 @@
+// ESLint configuration for the client TypeScript/React code.
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
@@ -6,6 +7,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
+  // Ignore build output.
   globalIgnores(['dist']),
   {
     files: ['**/*.{ts,tsx}'],

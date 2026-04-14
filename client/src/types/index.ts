@@ -1,3 +1,4 @@
+// Shared data shapes for user, project, and chat content.
 export interface User {
     id: string;
     email: string;
@@ -7,6 +8,7 @@ export interface User {
     image?: string;
 }
 
+// Single chat message in the project conversation.
 export interface Message {
     id: string;
     role: any;
@@ -14,12 +16,14 @@ export interface Message {
     timestamp: string;
 }
 
+// Stored code snapshot for a project version.
 export interface Version {
     id: string;
     timestamp: string;
     code: string;
 }
 
+// Main project model used throughout the UI.
 export interface Project {
     id: string;
     name: string;

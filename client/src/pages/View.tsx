@@ -1,3 +1,4 @@
+// Public view page for published projects.
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
 import { Loader2Icon } from "lucide-react"
@@ -9,9 +10,11 @@ import { toast } from "sonner"
 const View = () => {
 
     const {projectId} = useParams()
+    // HTML code loaded from the published endpoint.
     const [code, setCode] = useState("")
     const [loading, setLoading] = useState(true)
 
+    // Fetch published code for the project.
     const fetchCode = async () => {
         try {
             const {data} = await api.get(`/api/project/published/${projectId}`)
@@ -24,6 +27,7 @@ const View = () => {
     }
 
     useEffect(()=> {
+        // Load once on mount.
         fetchCode()
     }, [])
 

@@ -1,3 +1,4 @@
+// Sidebar that shows chat history, versions, and revision input.
 import { BotIcon, EyeIcon, Loader2Icon, SendIcon, UserIcon } from "lucide-react";
 import type { Message, Project, Version } from "../types";
 import { Link } from "react-router-dom";
@@ -20,9 +21,12 @@ const Sidebar = ({
     isGenerating,
     setIsGenerating,
 }: SidebarProps) => {
+    // Ref used to scroll to the latest message.
     const messageRef = useRef<HTMLDivElement>(null);
+    // User input for revision requests.
     const [input, setInput] = useState("");
 
+    // Refresh the project data from the API.
     const fetchProject = async () => { 
         try {
             const {data} = await api.get(`/api/user/project/${project.id}`);
@@ -32,6 +36,7 @@ const Sidebar = ({
         }
     };
 
+    // Roll back to a previous version of the project.
     const handleRollback = async (versionId: string) => {
         try {
             const confirm = window.confirm("Are you sure you want to roll back to this version?");
@@ -48,6 +53,7 @@ const Sidebar = ({
         }
     };
 
+    // Send a revision request and poll for updates.
     const handleRevisions = async (e: React.FormEvent) => {
         e.preventDefault();
         let interval: number | undefined;
@@ -71,6 +77,7 @@ const Sidebar = ({
     }
 
     useEffect(() => {
+        // Keep the view scrolled to the newest item.
         if (messageRef.current) {
             messageRef.current.scrollIntoView({ behavior: "smooth" });
         }
@@ -82,8 +89,8 @@ const Sidebar = ({
                 }`}
         >
             <div className="flex flex-col h-full">
-                {/* Message Area */}
-                <div className="flex-1 overflow-y-auto no-scrollbar px-3 flex flex-col">
+                    {/* Message Area */}
+                    <div className="flex-1 overflow-y-auto no-scrollbar px-3 flex flex-col">
                     {[...project.conversation, ...project.versions]
                         .sort(
                             (a, b) =>
