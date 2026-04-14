@@ -1,10 +1,14 @@
+// Configures Better Auth with Prisma and cookie settings.
+// Module: auth configuration.
 import 'dotenv/config';
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "./prisma.js";
 
+// Allowed frontend origins for auth cookies/requests.
 const trustedOrigins = process.env.TRUSTED_ORIGINS?.split(",") || []
 
+// Initialize Better Auth with Prisma-backed storage.
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql",

@@ -1,43 +1,53 @@
+// Handles project-related controller logic for revisions and publishing.
+// Module: controllers.
 import { Request, Response } from 'express'
 import prisma from '../lib/prisma.js';
 import openai from '../configs/openai.js';
 
-//  function to make revision
+// Create a new AI-powered revision for a project.
 export const makeRevision = async (req: Request, res: Response) => {
     const userId = req.userId;
     try {
+        // Read route params and prompt text.
         const projectId = Array.isArray(req.params.projectId)
             ? req.params.projectId[0]
             : req.params.projectId;
         const { message } = req.body;
 
+        // Prisma: fetch user for auth and credit checks.
         const user = await prisma.user.findUnique({
             where: {
                 id: userId,
             },
         });
 
+        // Ensure user is authenticated.
         if (!userId || !user) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
+        // Ensure user has enough credits to proceed.
         if (user.credits < 5) {
             return res.status(403).json({ message: 'add more credits to make changes' })
         }
 
+        // Ensure a valid prompt is provided.
         if (!message || message.trim() === '') {
             return res.status(400).json({ message: 'Please enter a valid prompt' })
         }
 
+        // Prisma: load the current project and versions.
         const currentProject = await prisma.websiteProject.findUnique({
             where: { id: projectId, userId },
             include: { versions: true }
         })
 
+        // Ensure project exists for this user.
         if (!currentProject) {
             return res.status(404).json({ message: 'Project not found' })
         }
 
+        // Prisma: store user prompt in conversation history.
         await prisma.conversation.create({
             data: {
                 role: 'user',
@@ -46,12 +56,13 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: decrement user credits for the request.
         await prisma.user.update({
             where: { id: userId },
             data: { credits: { decrement: 5 } }
         })
 
-        // Enhance user prompt
+        // OpenAI: enhance the user prompt for clarity.
         const promptEnhanceResponse = await openai.chat.completions.create({
             model: 'stepfun/step-3.5-flash:free',
             messages: [
@@ -77,6 +88,7 @@ export const makeRevision = async (req: Request, res: Response) => {
 
         const enhancedPrompt = promptEnhanceResponse.choices[0].message.content;
 
+        // Prisma: save enhanced prompt to conversation.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -85,6 +97,7 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: log that generation is starting.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -93,7 +106,7 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
-        // Generate website code
+        // OpenAI: generate updated HTML for the project.
         const codeGenerationResponse = await openai.chat.completions.create({
             model: 'stepfun/step-3.5-flash:free',
             messages: [
@@ -120,6 +133,7 @@ export const makeRevision = async (req: Request, res: Response) => {
         const code = codeGenerationResponse.choices[0].message.content || '';
 
         if (!code) {
+            // Prisma: record failure and refund credits.
             await prisma.conversation.create({
                 data: {
                     role: 'assistant',
@@ -127,6 +141,7 @@ export const makeRevision = async (req: Request, res: Response) => {
                     projectId
                 }
             })
+            // Prisma: refund credits when generation fails.
             await prisma.user.update({
                 where: { id: userId },
                 data: { credits: { increment: 5 } }
@@ -134,6 +149,7 @@ export const makeRevision = async (req: Request, res: Response) => {
             return;
         }
 
+        // Prisma: store the new version with generated code.
         const version = await prisma.version.create({
             data: {
                 code: code.replace(/```[a-z]*\n?/gi, '')
@@ -144,6 +160,7 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: notify user that changes were made.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -152,6 +169,7 @@ export const makeRevision = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: update project with the latest code/version.
         await prisma.websiteProject.update({
             where: { id: projectId },
             data: {
@@ -165,6 +183,7 @@ export const makeRevision = async (req: Request, res: Response) => {
         res.json({ message: 'Changes made successfully' });
 
     } catch (error: any) {
+        // Prisma: refund credits if an error occurs.
         await prisma.user.update({
             where: { id: userId },
             data: { credits: { increment: 5 } }
@@ -174,7 +193,7 @@ export const makeRevision = async (req: Request, res: Response) => {
     }
 }
 
-// roll back to a specific version
+// Roll back a project to a specific saved version.
 export const rollbackToVersion = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
@@ -190,6 +209,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
             ? req.params.versionId[0]
             : req.params.versionId;
 
+        // Prisma: load project and versions for this user.
         const projects = await prisma.websiteProject.findUnique({
             where: { id: projectId, userId },
             include: { versions: true }
@@ -204,6 +224,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Version not found' });
         }
 
+        // Prisma: update project to selected version code.
         await prisma.websiteProject.update({
             where: { id: projectId, userId },
             data: {
@@ -212,6 +233,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
             }
         })
 
+        // Prisma: record rollback in conversation history.
         await prisma.conversation.create({
             data: {
                 role: 'assistant',
@@ -228,7 +250,7 @@ export const rollbackToVersion = async (req: Request, res: Response) => {
     }
 }
 
-// function to delete a project
+// Delete a project owned by the current user.
 export const deleteProject = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
@@ -239,6 +261,7 @@ export const deleteProject = async (req: Request, res: Response) => {
             ? req.params.projectId[0]
             : req.params.projectId;
 
+        // Prisma: delete the project by id and user.
         await prisma.websiteProject.delete({
             where: { id: projectId, userId }
         })
@@ -250,7 +273,7 @@ export const deleteProject = async (req: Request, res: Response) => {
     }
 }
 
-// getting project code preview
+// Return project data for previewing in the UI.
 export const getProjectPreview = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
@@ -262,6 +285,7 @@ export const getProjectPreview = async (req: Request, res: Response) => {
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
+        // Prisma: fetch project with versions for preview.
         const project = await prisma.websiteProject.findFirst({
             where: { id: projectId, userId },
             include: { versions: true }
@@ -278,9 +302,10 @@ export const getProjectPreview = async (req: Request, res: Response) => {
     }
 }
 
-// get published projects
+// List all published projects for public viewing.
 export const getPublishedProjects = async (req: Request, res: Response) => {
     try {
+        // Prisma: list published projects with author names.
         const projects = await prisma.websiteProject.findMany({
             where: { isPublished: true },
             include: {
@@ -299,12 +324,13 @@ export const getPublishedProjects = async (req: Request, res: Response) => {
     }
 }
 
-// get a single project by id
+// Fetch public code for a single published project.
 export const getProjectById = async (req: Request, res: Response) => {
     try {
         const projectId = Array.isArray(req.params.projectId)
             ? req.params.projectId[0]
             : req.params.projectId;
+        // Prisma: find a published project by id.
         const project = await prisma.websiteProject.findFirst({
             where: { id: projectId }
         })
@@ -319,7 +345,7 @@ export const getProjectById = async (req: Request, res: Response) => {
     }
 }
 
-// save project code
+// Save edited project code for the current user.
 export const saveProjectCode = async (req: Request, res: Response) => {
     try {
         const userId = req.userId;
@@ -336,6 +362,7 @@ export const saveProjectCode = async (req: Request, res: Response) => {
             return res.status(400).json({ message: 'Code cannot be empty' });
         }
 
+        // Prisma: verify the project belongs to the user.
         const project = await prisma.websiteProject.findUnique({
             where: { id: projectId, userId }
         })
@@ -344,6 +371,7 @@ export const saveProjectCode = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Project not found' });
         }
 
+        // Prisma: update the project with the new code.
         await prisma.websiteProject.update({
             where: { id: projectId },
             data: {
