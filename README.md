@@ -1,6 +1,6 @@
-# 🚀 AI Website Builder
+#  AI Website Builder
 
-## 📌 Description
+##  Description
 
 AI Website Builder is a full-stack web application that allows users to generate complete, responsive websites using AI. Users can input prompts, and the system generates modern UI websites with real-time preview, version control, and project management.
 
@@ -8,7 +8,7 @@ The platform also includes authentication, credit-based usage, and Stripe integr
 
 ---
 
-## ✨ Features
+##  Features
 
 *  AI-powered website generation from prompts
 *  Automatic HTML + Tailwind CSS code generation
@@ -50,7 +50,7 @@ AI-Website-Builder/
 
 ---
 
-## 🛠️ Technologies Used
+##  Technologies Used
 
 ### Frontend
 
@@ -73,7 +73,7 @@ AI-Website-Builder/
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 ### 1. Clone the repository
 
@@ -134,7 +134,7 @@ npm run dev
 
 ---
 
-## 🌐 Demo
+## Demo
 
 * Live App: https://instantwebai.vercel.app
 
@@ -155,7 +155,7 @@ Please read **contributing.md** for guidelines on how to contribute to this proj
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 **Laxman Goud**
 
